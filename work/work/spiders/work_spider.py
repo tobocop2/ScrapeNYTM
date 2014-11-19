@@ -19,6 +19,7 @@ buzzwords = ['dedicated','cooperative','hiring','hire','job','jobs','career','ca
         'Backbone.JS', 'Knockout.JS', 'JQuery', 'AJAX','HTML5','CSS3','AWS Cloud','Hadoop','Python','MongoDB', 'Machine Learning','Scala',\
         'NoSQL', 'MongoDB','Amazon Web Services','Node.js', 'mySQL', 'SQL Server', 'PostgreSQL', 'Oracle', 'Agile', 'REST', 'JSON', \
         'XML', 'SaaS', 'Cloud','x86 Assembly','6502 Assembly','Full Time','full time','full-time']
+extensions = ['png', 'jpeg', 'pdf', 'tar','exe','zip']
 
 class work_spider(Spider):
     name = "work"
@@ -71,6 +72,7 @@ class work_spider(Spider):
         if intersect:
             keys = str(intersect)[3:]
             new_emails =  set(re.findall(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", response.body, re.I))
+            new_emails = set([email for email in list(new_emails) if not any(ext in email for ext in extensions)])
             emails.update(new_emails)
             print emails
             item['emails'].append({response.url: list(emails),'keywords': keys})
@@ -90,8 +92,7 @@ class work_spider(Spider):
                 if domain in self.allowed_domains:
                     self.stats[domain] +=1
                     print 'in allowed domains:\t'+domain
-                    if self.stats[domain] <= 20:
+                    if self.stats[domain] <= 50:
                         yield Request(link,callback=self.parse_job,meta=meta)
         #print inspect.currentframe().f_back.f_lineno
-                    else:
-                        yield item
+        yield item
