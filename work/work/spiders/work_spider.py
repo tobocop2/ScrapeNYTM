@@ -19,7 +19,7 @@ buzzwords = ['dedicated','cooperative','hiring','hire','job','jobs','career','ca
         'Backbone.JS', 'Knockout.JS', 'JQuery', 'AJAX','HTML5','CSS3','AWS Cloud','Hadoop','Python','MongoDB', 'Machine Learning','Scala',\
         'NoSQL', 'MongoDB','Amazon Web Services','Node.js', 'mySQL', 'SQL Server', 'PostgreSQL', 'Oracle', 'Agile', 'REST', 'JSON', \
         'XML', 'SaaS', 'Cloud','x86 Assembly','6502 Assembly','Full Time','full time','full-time']
-extensions = ['png', 'jpeg', 'pdf', 'tar','exe','zip']
+extensions = ['png', 'jpeg', 'pdf', 'tar','exe','zip','gmail','GMAIL','yahoo','YAHOO','hotmail']
 
 class work_spider(Spider):
     name = "work"
@@ -32,8 +32,6 @@ class work_spider(Spider):
         num_pages = int(soup.select('.digg_pagination a')[-2].text)+1
         for num in range(1,num_pages):
             url = START_URL_FMT.format(num)
-            #print url
-            #using this for the next url format
             yield Request(url,callback=self.parse)
 
     def parse(self, response):
@@ -41,9 +39,6 @@ class work_spider(Spider):
         soup = BeautifulSoup(response.body)
         crawled_links = []
         urls = [url['href'] for url in soup.select('.made-listing a')]
-        #linkPattern = re.compile("^(?:ftp|http|https):\/\/(?:[\w\.\-\+]+:{0,1}[\w\.\-\+]*@)?(?:\
-        #        [a-z0-9\-\.]+)(?::[0-9]+)?(?:\/|\/(?:[\w#!:\.\?\+=&amp;%@!\-\/\(\)]+)|\?(?:[\w#!:\.\\
-        #        ?\+=&amp;%@!\-\/\(\)]+))?$")
         for url in urls:
             if not url in crawled_links:
                 crawled_links.append(url)
@@ -57,14 +52,10 @@ class work_spider(Spider):
                 yield Request(url,callback=self.parse_job,meta=meta)
 
     def parse_job(self,response):
-        #print self.allowed_domains
-        #only allowed domains will be crawled recursively
         item = response.meta['item']
         crawled_links = response.meta['crawled_links']
         emails = response.meta['emails']
         soup = BeautifulSoup(response.body)
-        #print 'fucking error here: '
-        #print emails
         parts = urlsplit(response.url)
         base_url = "{0.scheme}://{0.netloc}".format(parts)
         path = response.url[:response.url.rfind('/')+1] if '/' in parts.path else response.url
@@ -94,5 +85,6 @@ class work_spider(Spider):
                     print 'in allowed domains:\t'+domain
                     if self.stats[domain] <= 50:
                         yield Request(link,callback=self.parse_job,meta=meta)
-        #print inspect.currentframe().f_back.f_lineno
-        yield item
+                    else:
+                        #print inspect.currentframe().f_back.f_lineno
+                        yield item
