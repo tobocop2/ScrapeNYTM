@@ -12,7 +12,9 @@ keywords = ''
 emails = []
 json_data=open('work.json')
 data = json.load(json_data)
+print 'loading file'
 with open(email_file,'a') as f:
+    print 'file loaded'
     for company in data:
         for stuff in company['emails']:
             for k,v, in stuff.iteritems():
@@ -26,11 +28,15 @@ with open(email_file,'a') as f:
     for email in email_dict.keys():
         if any(ext in email for ext in ['jpg','gmail','example']):
             email_dict.pop(email)
+    print 'bad emails removed'
+
+    for email in email_dict.keys():
+        is_valid = validate_email(email)
+        if is_valid:
+            print email
+            f.write(email+'\n')
         else:
-            is_valid = validate_email(email,verify=True)
-            if not is_valid:
-                email_dict.pop(email)
-        print email
-        f.write(email+'\n')
+            print '%s is not valid' % email
+            continue
     f.write('Total valid nytm emails:\t'+str(len(email_dict.keys())))
 json_data.close()
