@@ -10,4 +10,5 @@ import scrapy
 class ScrapeNYTMItem(scrapy.Item):
     # define the fields for your item here like:
     emails = scrapy.Field()
+    domain = scrapy.Field()
     #pass
