@@ -56,7 +56,7 @@ class work_spider(Spider):
         path = response.url[:response.url.rfind('/')+1] if '/' in parts.path else response.url
         intersect = set(buzzwords).intersection(set(response.body.split()))
         if intersect:
-            keys = str(intersect)[3:]
+            keys = list(intersect)[3:]
             tmp_emails =  set(re.findall(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", response.body, re.I))
             email_set = set([email for email in list(tmp_emails) if not any(ext in email for ext in extensions)])
             emails.update(email_set)
@@ -67,7 +67,7 @@ class work_spider(Spider):
                 'keywords': keys
             })
 
-        num_links = len(soup.find_all('a')
+        num_links = len(soup.find_all('a'))
         for anchor in soup.find_all('a'):
             link = anchor.attrs["href"] if "href" in anchor.attrs else ''
 
