@@ -67,6 +67,7 @@ class work_spider(Spider):
                 'keywords': keys
             })
 
+        num_links = len(soup.find_all('a')
         for anchor in soup.find_all('a'):
             link = anchor.attrs["href"] if "href" in anchor.attrs else ''
 
@@ -85,18 +86,9 @@ class work_spider(Spider):
                 domain = urlparse(link).netloc
                 if domain in self.allowed_domains:
                     print 'in allowed domains:\t'+domain
-                    if self.stats[domain] <= 50:
+                    if self.stats[domain] <= num_links:
                         self.stats[domain] += 1
                         yield Request(link,callback=self.parse_job,meta=meta)
                     else:
-                        print 'The domain count here is:  %d' % self.stats[domain]
-                        print 'yielding item with domain %s' % domain
-                        print 'yielding item with domain %s' % domain
-                        print 'yielding item with domain %s' % domain
-                        print 'yielding item with domain %s' % domain
-                        print 'yielding item with domain %s' % domain
                         item['domain'] = domain
                         yield item
-            #if link has been crawled already
-            #print 'This link has been crawled: %s' % link
-            #return
