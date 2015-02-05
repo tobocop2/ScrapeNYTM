@@ -16,6 +16,3 @@ NEWSPIDER_MODULE = 'ScrapeNYTM.spiders'
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'work (+http://www.yourdomain.com)'
 
-ITEM_PIPELINES = {
-    'ScrapeNYTM.pipelines.DuplicatesPipeline': 300,
-}
