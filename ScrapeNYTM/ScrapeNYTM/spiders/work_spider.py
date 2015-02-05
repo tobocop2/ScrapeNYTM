@@ -16,8 +16,8 @@ extensions = ['jpg,','example','png', 'jpeg', 'pdf', 'tar','exe','zip','gmail','
 class work_spider(Spider):
     name = "nytm"
     allowed_domains = []
-    stats = {}
     crawled_links = []
+    stats = {}
 
     def start_requests(self):
         res = requests.get('https://nytm.org/made?list=true&page=1')
@@ -25,70 +25,67 @@ class work_spider(Spider):
         num_pages = int(soup.select('.digg_pagination a')[-2].text)+1
         for num in range(1,num_pages):
             url = START_URL_FMT.format(num)
-            yield Request(url,callback=self.parse)
+            yield Request(url,callback=self.parse_page)
 
-    def parse(self, response):
+    def parse_page(self, response):
         soup = BeautifulSoup(response.body)
         urls = [url['href'] for url in soup.select('.made-listing a')]
         for url in urls:
             if not url in self.crawled_links:
                 self.crawled_links.append(url)
-                item = ScrapeNYTMItem()
-                item['emails'] = []
-                emails = set()
                 domain = urlparse(url).netloc
                 self.allowed_domains.append(domain)
-                self.stats[domain] = 0
-                meta = {
-                        'item': item,
-                        #'crawled_links': crawled_links,
-                        'emails': emails
-                }
-                yield Request(url,callback=self.parse_job,meta=meta)
+                self.stats[domain] = {'num_parsed': 0, 'num_pages': 0}
+                yield Request(url,callback=self.parse_company,meta={'domain': domain})
 
-    def parse_job(self,response):
-        item = response.meta['item']
-        #crawled_links = response.meta['crawled_links']
-        emails = response.meta['emails']
-        soup = BeautifulSoup(response.body)
+    def parse_company(self, response):
+        item = ScrapeNYTMItem()
+        item['emails'] = []
+
         parts = urlsplit(response.url)
         base_url = "{0.scheme}://{0.netloc}".format(parts)
-        path = response.url[:response.url.rfind('/')+1] if '/' in parts.path else response.url
+        domain = response.meta['domain']
+
+        soup = BeautifulSoup(response.body)
+        urls = [url['href'] for url in soup.find_all('a') if url.has_attr('href')]
+        num_pages = len(urls)
+        self.stats[domain]['num_pages'] = num_pages
+
+        for url in urls:
+            url_parts = urlsplit(url)
+            path = url[:url.rfind('/')+1] if '/' in url_parts.path else url
+            netloc = urlparse(url).netloc
+            if url.startswith('/'):
+               url = base_url + url
+            elif not url.startswith('http'):
+               url = path + url
+            if not url in self.crawled_links:
+                self.crawled_links.append(url)
+                meta = {'domain': domain,'item': item}
+                if netloc in self.allowed_domains:
+                    yield Request(url,callback=self.parse_url,meta=meta)
+
+
+    def parse_url(self,response):
+        item = response.meta['item']
+        domain = response.meta['domain']
+
+        emails = set()
+        soup = BeautifulSoup(response.body)
         intersect = set(buzzwords).intersection(set(response.body.split()))
         if intersect:
-            keys = list(intersect)[3:]
-            tmp_emails =  set(re.findall(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", response.body, re.I))
-            email_set = set([email for email in list(tmp_emails) if not any(ext in email for ext in extensions)])
-            emails.update(email_set)
-            print emails
-            item['emails'].append({
+            key_words = list(intersect)[3:]
+            unfiltered_emails =  set(re.findall(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", response.body, re.I))
+            filtered_emails = set([email for email in list(unfiltered_emails) if not any(ext in email for ext in extensions)])
+            emails.update(filtered_emails)
+            item['emails'].append
+            ({
                 'response_url': response.url,
                 'email_list': list(emails),
-                'keywords': keys
+                'keywords': key_words
             })
 
-        num_links = len(soup.find_all('a'))
-        for anchor in soup.find_all('a'):
-            link = anchor.attrs["href"] if "href" in anchor.attrs else ''
-
-            if link.startswith('/'):
-               link = base_url + link
-            elif not link.startswith('http'):
-               link = path + link
-
-            if not link in self.crawled_links:
-                self.crawled_links.append(link)
-                meta = {
-                        'item': item,
-                        #'crawled_links': crawled_links,
-                        'emails': emails
-                }
-                domain = urlparse(link).netloc
-                if domain in self.allowed_domains:
-                    print 'in allowed domains:\t'+domain
-                    if self.stats[domain] <= num_links:
-                        self.stats[domain] += 1
-                        yield Request(link,callback=self.parse_job,meta=meta)
-                    else:
-                        item['domain'] = domain
-                        yield item
+        self.stats[domain]['num_parsed'] += 1
+        if self.stats[domain]['num_parsed'] == self.stats[domain]['num_pages']:
+            yield item
+        return
