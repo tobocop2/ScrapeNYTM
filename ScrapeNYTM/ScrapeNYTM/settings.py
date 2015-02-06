@@ -13,8 +13,9 @@ BOT_NAME = 'ScrapeNYTM'
 SPIDER_MODULES = ['ScrapeNYTM.spiders']
 NEWSPIDER_MODULE = 'ScrapeNYTM.spiders'
 COOKIES_ENABLED = 0
-DOWNLOAD_DELAY =  0
+DOWNLOAD_DELAY = .5
 RETRY_TIMES = 5
+DEPTH_LIMIT=20
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 USER_AGENT = 'tobias.perelste.in'

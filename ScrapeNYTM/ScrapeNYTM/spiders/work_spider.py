@@ -16,6 +16,7 @@ class work_spider(Spider):
     allowed_domains = []
     #ensure that no link is crawled twice
     crawled_links = []
+    crawled_companies = []
 
     def start_requests(self):
         res = requests.get('https://nytm.org/made?list=true&page=1')
@@ -32,12 +33,13 @@ class work_spider(Spider):
         for url in urls:
             if not url in self.allowed_domains:
                 self.crawled_links.append(url)
+                self.crawled_companies.append(url)
                 domain = urlparse(url).netloc
                 self.allowed_domains.append(domain)
                 item = ScrapeNYTMItem()
                 item['emails'] = []
                 item['num_parsed'] = 0
-                item['num_pages'] = 0
+                item['num_pages'] = 1
                 item['domain'] = domain
                 item['urls'] = set()
                 meta = {'item': item}
@@ -64,7 +66,7 @@ class work_spider(Spider):
             if not urlparse(url).netloc:
                 url = base_url+url
             elif not url.startswith('http'):
-                url = url_parts.scheme+url
+                url = 'http'+url
             netloc = urlparse(url).netloc
             if netloc in self.allowed_domains:
                 if not url in self.crawled_links:
@@ -94,7 +96,8 @@ class work_spider(Spider):
             })
 
         item['num_parsed'] += 1
-        if item['num_parsed'] == 500 or item['num_parsed'] == item['num_pages']:
-            print item
-            yield item
-        yield Request(response.url,callback=self.parse_company,meta={'item': item})
+        #if item['num_parsed'] == 200 or item['num_parsed'] == item['num_pages']:
+        if item['num_parsed'] <= item['num_pages']:
+            yield Request(response.url,callback=self.parse_company,meta={'item': item})
+        print item
+        yield item
