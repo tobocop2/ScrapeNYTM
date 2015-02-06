@@ -60,10 +60,12 @@ class work_spider(Spider):
                 url = base_url+url
             elif not url.startswith('http'):
                 url = url_parts.scheme+url
-            if not url in self.crawled_links:
-                self.crawled_links.append(url)
-                meta = {'item': item}
-                yield Request(url,callback=self.parse_url,meta=meta,dont_filter=True)
+            netloc = urlparse(url).netloc
+            if netloc in self.allowed_domains:
+                if not url in self.crawled_links:
+                    self.crawled_links.append(url)
+                    meta = {'item': item}
+                    yield Request(url,callback=self.parse_url,meta=meta,dont_filter=True)
 
 
     def parse_url(self,response):
