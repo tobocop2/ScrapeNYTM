@@ -5,4 +5,4 @@ buzzwords = ['dedicated','cooperative','hiring','hire','job','jobs','career','ca
         'Backbone.JS', 'Knockout.JS', 'JQuery', 'AJAX','HTML5','CSS3','AWS Cloud','Hadoop','Python','MongoDB', 'Machine Learning','Scala',\
         'NoSQL', 'symfony', 'MongoDB','Amazon Web Services','Node.js', 'mySQL', 'SQL Server', 'PostgreSQL', 'Oracle', 'Agile', 'REST', 'JSON', \
         'XML', 'SaaS', 'Cloud','x86 Assembly','6502 Assembly','Full Time','full time','full-time']
-extensions = ['jpg,','example','png', 'jpeg', 'pdf', 'tar','exe','zip','gmail','GMAIL','yahoo','YAHOO','hotmail']
+extensions = ['jpg,','example','domain','png', 'jpeg', 'pdf', 'tar','exe','zip','gmail','yahoo','hotmail']

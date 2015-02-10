@@ -1,14 +1,13 @@
 from scrapy.spider import Spider
 from ScrapeNYTM.items import ScrapeNYTMItem
 from scrapy.http import Request
-from bs4 import BeautifulSoup
 from urlparse import urlsplit,urlparse
-from buzzwords import buzzwords
+from buzzwords import buzzwords,extensions
+from user_agents import user_agents
+import random
+import urllib2
 import re
-import requests
 
-START_URL_FMT = 'https://nytm.org/made?list=true&page={}'
-extensions = ['jpg,','example','domain','png', 'jpeg', 'pdf', 'tar','exe','zip','gmail','yahoo','hotmail']
 
 class work_spider(Spider):
     name = "nytm"
@@ -18,20 +17,28 @@ class work_spider(Spider):
     crawled_links = []
 
     def start_requests(self):
-        res = requests.get('https://nytm.org/made?list=true&page=1')
-        soup = BeautifulSoup(res.text)
-        num_pages = int(soup.select('.digg_pagination a')[-2].text)+1
-        #for num in range(1,num_pages):
-        for num in range(1,2):
+        START_URL_FMT = 'https://nytm.org/made?list=true&page={}'
+        user_agent = random.choice(user_agents)
+        url = 'https://nytm.org/made?list=true&page=1'
+        headers={'User-Agent':user_agent}
+        req = urllib2.Request('https://nytm.org/made?list=true&page=1',headers=headers)
+        res = urllib2.urlopen(req).read()
+        num_pages = int(re.findall('page=[0-9]+',res)[-2][-2:])
+        print num_pages
+        print num_pages
+        print num_pages
+        print num_pages
+        print num_pages
+        print num_pages
+        print num_pages
+        for num in range(1,num_pages):
+        #for num in range(1,2):
             url = START_URL_FMT.format(num)
             yield Request(url,callback=self.parse_nytm_page)
 
     def parse_nytm_page(self, response):
         #Go through each nytm page, initialize scrapy item, and then crawl company page
-        #soup = BeautifulSoup(response.body)
-        #urls = [url['href'] for url in soup.select('.made-listing a')]
         urls = response.css('.made-listing a::attr(href)').extract()
-
         for url in urls:
             if not url in self.allowed_domains:
                 self.crawled_links.append(url)
@@ -56,8 +63,7 @@ class work_spider(Spider):
         parts = urlsplit(response.url)
         base_url = "{0.scheme}://{0.netloc}".format(parts)
 
-        soup = BeautifulSoup(response.body)
-        urls = [url['href'] for url in soup.find_all('a') if url.has_attr('href') and not any(ext in url for ext in extensions)]
+        urls = response.css('a::attr(href)').extract()
         #find new urls on company page at each recursion level and only iterate through these
         #url_difference = set(urls).difference(item['urls'])
 
@@ -66,6 +72,8 @@ class work_spider(Spider):
         item['num_pages'] = len(url_set)
 
         for url in urls:
+            if any(ext in url for ext in extensions):
+                continue
             url_parts = urlsplit(url)
             if not urlparse(url).netloc:
                 url = base_url+url
@@ -79,35 +87,25 @@ class work_spider(Spider):
                     yield Request(url,callback=self.parse_url,meta=meta,dont_filter=True)
 
 
-
     def parse_url(self,response):
         item = response.meta['item']
-        print item['emails']
-        print item['emails']
-        print item['emails']
-        print item['emails']
-        print item['emails']
-        print item['emails']
-
         emails = set()
-        soup = BeautifulSoup(response.body)
-        #Check to see if any of the buzzwords are found on the page
+#Check to see if any of the buzzwords are found on the page
         intersect = set(buzzwords).intersection(set(response.body.split()))
         if intersect:
             key_words = list(intersect)[3:]
-            #Build emal set ad flter out unwanted emals
-            unfiltered_emails =  set(re.findall(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", response.body, re.I))
+#Build emal set ad flter out unwanted emals
+            unfiltered_emails = set(re.findall(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", response.body, re.I))
             filtered_emails = set([email for email in list(unfiltered_emails) if not any(ext in email for ext in extensions)])
             emails.update(filtered_emails)
             print list(emails)
             print 'Appending emails'
             item['emails'].append
             ({
-                'response_url': response.url,
-                'email_list': list(emails),
-                'keywords': key_words
+            'response_url': response.url,
+            'email_list': list(emails),
+            'keywords': key_words
             })
-
         item['num_parsed'] += 1
         if item['num_parsed'] == 200 or item['num_parsed'] == item['num_pages']:
             yield item
