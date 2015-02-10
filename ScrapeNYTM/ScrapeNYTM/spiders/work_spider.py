@@ -8,7 +8,7 @@ import re
 import requests
 
 START_URL_FMT = 'https://nytm.org/made?list=true&page={}'
-extensions = ['jpg,','example','png', 'jpeg', 'pdf', 'tar','exe','zip','gmail','yahoo','hotmail']
+extensions = ['jpg,','example','domain','png', 'jpeg', 'pdf', 'tar','exe','zip','gmail','yahoo','hotmail']
 
 class work_spider(Spider):
     name = "nytm"
@@ -16,39 +16,43 @@ class work_spider(Spider):
     allowed_domains = []
     #ensure that no link is crawled twice
     crawled_links = []
-    crawled_companies = []
 
     def start_requests(self):
         res = requests.get('https://nytm.org/made?list=true&page=1')
         soup = BeautifulSoup(res.text)
         num_pages = int(soup.select('.digg_pagination a')[-2].text)+1
-        for num in range(1,num_pages):
+        #for num in range(1,num_pages):
+        for num in range(1,2):
             url = START_URL_FMT.format(num)
             yield Request(url,callback=self.parse_nytm_page)
 
     def parse_nytm_page(self, response):
         #Go through each nytm page, initialize scrapy item, and then crawl company page
-        soup = BeautifulSoup(response.body)
-        urls = [url['href'] for url in soup.select('.made-listing a')]
+        #soup = BeautifulSoup(response.body)
+        #urls = [url['href'] for url in soup.select('.made-listing a')]
+        urls = response.css('.made-listing a::attr(href)').extract()
+
         for url in urls:
             if not url in self.allowed_domains:
                 self.crawled_links.append(url)
-                self.crawled_companies.append(url)
                 domain = urlparse(url).netloc
+                print domain
                 self.allowed_domains.append(domain)
                 item = ScrapeNYTMItem()
                 item['emails'] = []
                 item['num_parsed'] = 0
                 item['num_pages'] = 1
                 item['domain'] = domain
-                item['urls'] = set()
-                meta = {'item': item}
+                #item['urls'] = set()
+                url_set = set()
+                meta = {'item': item, 'url_set': url_set}
                 #self.stats[domain] = {'num_parsed': 0, 'num_pages': 0}
                 yield Request(url,callback=self.parse_company,meta=meta,dont_filter=True)
 
     def parse_company(self, response):
         #parse all urls within company repsonse body
         item = response.meta['item']
+        url_set = response.meta['url_set']
         parts = urlsplit(response.url)
         base_url = "{0.scheme}://{0.netloc}".format(parts)
 
@@ -58,8 +62,8 @@ class work_spider(Spider):
         #url_difference = set(urls).difference(item['urls'])
 
         #update url set to include any new urls found from within company page. Then update the total page count
-        item['urls'].update(urls)
-        item['num_pages'] = len(item['urls'])
+        url_set.update(urls)
+        item['num_pages'] = len(url_set)
 
         for url in urls:
             url_parts = urlsplit(url)
@@ -75,8 +79,15 @@ class work_spider(Spider):
                     yield Request(url,callback=self.parse_url,meta=meta,dont_filter=True)
 
 
+
     def parse_url(self,response):
         item = response.meta['item']
+        print item['emails']
+        print item['emails']
+        print item['emails']
+        print item['emails']
+        print item['emails']
+        print item['emails']
 
         emails = set()
         soup = BeautifulSoup(response.body)
@@ -88,6 +99,8 @@ class work_spider(Spider):
             unfiltered_emails =  set(re.findall(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", response.body, re.I))
             filtered_emails = set([email for email in list(unfiltered_emails) if not any(ext in email for ext in extensions)])
             emails.update(filtered_emails)
+            print list(emails)
+            print 'Appending emails'
             item['emails'].append
             ({
                 'response_url': response.url,
@@ -96,8 +109,7 @@ class work_spider(Spider):
             })
 
         item['num_parsed'] += 1
-        #if item['num_parsed'] == 200 or item['num_parsed'] == item['num_pages']:
-        if item['num_parsed'] <= item['num_pages']:
-            yield Request(response.url,callback=self.parse_company,meta={'item': item})
+        if item['num_parsed'] == 200 or item['num_parsed'] == item['num_pages']:
+            yield item
         print item
-        yield item
+        yield Request(response.url,callback=self.parse_company,meta={'item': item})
