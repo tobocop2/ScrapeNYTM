@@ -24,15 +24,8 @@ class work_spider(Spider):
         req = urllib2.Request('https://nytm.org/made?list=true&page=1',headers=headers)
         res = urllib2.urlopen(req).read()
         num_pages = int(re.findall('page=[0-9]+',res)[-2][-2:])
-        print num_pages
-        print num_pages
-        print num_pages
-        print num_pages
-        print num_pages
-        print num_pages
-        print num_pages
-        for num in range(1,num_pages):
-        #for num in range(1,2):
+        #for num in range(1,num_pages):
+        for num in range(1,2):
             url = START_URL_FMT.format(num)
             yield Request(url,callback=self.parse_nytm_page)
 
@@ -83,12 +76,14 @@ class work_spider(Spider):
             if netloc in self.allowed_domains:
                 if not url in self.crawled_links:
                     self.crawled_links.append(url)
-                    meta = {'item': item}
+                    item['num_parsed'] += 1
+                    meta = {'item': item, 'url_set': url_set}
                     yield Request(url,callback=self.parse_url,meta=meta,dont_filter=True)
 
 
     def parse_url(self,response):
         item = response.meta['item']
+        url_set = response.meta['url_set']
         emails = set()
 #Check to see if any of the buzzwords are found on the page
         intersect = set(buzzwords).intersection(set(response.body.split()))
@@ -98,16 +93,16 @@ class work_spider(Spider):
             unfiltered_emails = set(re.findall(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", response.body, re.I))
             filtered_emails = set([email for email in list(unfiltered_emails) if not any(ext in email for ext in extensions)])
             emails.update(filtered_emails)
-            print list(emails)
-            print 'Appending emails'
-            item['emails'].append
-            ({
-            'response_url': response.url,
-            'email_list': list(emails),
-            'keywords': key_words
-            })
-        item['num_parsed'] += 1
+            item['emails'].append(
+                {
+                    'response_url': response.url,
+                    'email_list': list(emails),
+                    'keywords': key_words
+                }
+            )
         if item['num_parsed'] == 200 or item['num_parsed'] == item['num_pages']:
+            print item
             yield item
-        print item
-        yield Request(response.url,callback=self.parse_company,meta={'item': item})
+        else:
+            yield Request(response.url,callback=self.parse_company,meta={'item': item, 'url_set': url_set})
+
